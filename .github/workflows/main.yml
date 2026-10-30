@@ -1,0 +1,21 @@
+name: Build uc_menu.dll
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (x64)
+        run: cmake -B build -A x64
+      - name: Build (Release)
+        run: cmake --build build --config Release
+      - name: Save uc_menu.dll
+        uses: actions/upload-artifact@v4
+        with:
+          name: uc_menu-dll
+          path: build/Release/uc_menu.dll
+          if-no-files-found: error
