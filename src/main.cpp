@@ -13,6 +13,7 @@
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "state.h"
+#include "title.h"
 #include "ui.h"
 
 namespace {
@@ -65,6 +66,12 @@ bool cursorCaptured() {
     return false;
 }
 
+/** В мире без открытого экрана? Если Java-наблюдатель работает — берём его данные, иначе судим по курсору. */
+bool inWorld() {
+    int k = uc::javaKind();
+    return k >= 0 ? k == 0 : cursorCaptured();
+}
+
 void clampCursor() {
     int w, h;
     clientSize(w, h);
@@ -98,10 +105,11 @@ LRESULT CALLBACK hkWndProc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
         if (rshift || wp == VK_INSERT) {
             if (uc::g_menuOpen) { closeMenu(); return 0; }
             // открывать можно ТОЛЬКО в игре: на паузе, в настройках, чате и инвентаре клавиша уходит игре как обычно
-            if (cursorCaptured() && GetForegroundWindow() == g_hwnd) { openMenu(); return 0; }
+            if (inWorld() && GetForegroundWindow() == g_hwnd) { openMenu(); return 0; }
         }
     }
     if (!uc::g_menuOpen) {
+        if (msg == WM_LBUTTONDOWN && uc::titleClick(xOf(lp), yOf(lp))) return 0;   // клик по панелям главного меню
         if (msg == WM_LBUTTONDOWN) uc::registerClick(0);
         else if (msg == WM_RBUTTONDOWN) uc::registerClick(1);
         return CallWindowProcW(oWndProc, h, msg, wp, lp);
@@ -212,7 +220,9 @@ void drawFrame() {
     dt = std::fmin(0.1f, std::fmax(0.0001f, dt));   // после долгого подвисания анимация не «перепрыгивает»
 
     bool focused = GetForegroundWindow() == g_hwnd;
-    bool captured = cursorCaptured();
+    bool captured = inWorld();
+    POINT mp{};
+    if (GetCursorPos(&mp) && ScreenToClient(g_hwnd, &mp)) uc::setRealMouse((float)mp.x, (float)mp.y, focused);
     if (uc::g_menuOpen) {
         // игра перешла в экран (например, пауза при потере фокуса) — меню закрываем
         g_lostFrames = captured ? 0 : g_lostFrames + 1;
@@ -286,4 +296,16 @@ extern "C" __declspec(dllexport) int JNI_OnLoad(void* /*vm*/, void* /*reserved*/
 extern "C" __declspec(dllexport) int Agent_OnLoad(void* /*vm*/, char* /*options*/, void* /*reserved*/) {
     install();
     return 0;
+}
+
+// ── JNI: сюда пишет Java-наблюдатель (uc-boot.jar). Только примитивы, поэтому jni.h не нужен. ──
+// jint в Windows — 32-битное целое, как и int.
+extern "C" __declspec(dllexport) void Java_universalclient_boot_UcNative_widget(void*, void*, int idx, int x, int y, int w, int h, int active) {
+    uc::javaWidget(idx, x, y, w, h, active);
+}
+extern "C" __declspec(dllexport) void Java_universalclient_boot_UcNative_ch(void*, void*, int idx, int codePoint) {
+    uc::javaChar(idx, codePoint);
+}
+extern "C" __declspec(dllexport) void Java_universalclient_boot_UcNative_commit(void*, void*, int count, int kind, int guiScale) {
+    uc::javaCommit(count, kind, guiScale);
 }

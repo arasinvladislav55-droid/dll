@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "state.h"
+#include "title.h"
 
 #include <windows.h>
 
@@ -72,8 +73,9 @@ void textV(float x, float y, float h, uint32_t rgb, const std::string& s, float 
 std::string fit(const std::string& s, float maxW, float size = 15.f) {
     if (tw(s, size) <= maxW) return s;
     std::string t = s;
-    while (!t.empty() && tw(t + "...", size) > maxW) {   // обрезаем по символам UTF-8, не разрывая многобайтовые
-        do { t.pop_back(); } while (!t.empty() && (t.back() & 0xC0) == 0x80);
+    while (!t.empty() && tw(t + "...", size) > maxW) {   // убираем символ UTF-8 целиком: байты-продолжения и затем ведущий байт
+        unsigned char b;
+        do { b = (unsigned char)t.back(); t.pop_back(); } while (!t.empty() && (b & 0xC0) == 0x80);
     }
     return t + "...";
 }
@@ -490,6 +492,8 @@ void drawMenu(int W, int H, float dt) {
 }  // namespace
 
 void setFonts(ImFont* normal, ImFont* bold) { F = normal; FB = bold ? bold : normal; }
+ImFont* fontNormal() { return F; }
+ImFont* fontBold() { return FB; }
 
 void registerClick(int button) { if (button == 0 || button == 1) clicks[button].push_back(ImGui::GetTime()); }
 
@@ -500,7 +504,7 @@ void setMenuOpen(bool open) {
 }
 
 bool needsFrame() {
-    if (g_menuOpen || openAnim > 0.001f) return true;
+    if (g_menuOpen || openAnim > 0.001f || titleActive()) return true;
     for (auto& m : g_modules) if (m.category == 0 && m.enabled) return true;
     return false;
 }
@@ -511,6 +515,7 @@ void render(int W, int H, float dt, bool focused, bool captured) {
     float dpi = std::round(std::min(2.5f, std::max(0.75f, H / 1080.f)) * 4.f) / 4.f;
     K = dpi;
     A = 1.f;
+    if (titleActive()) renderTitle(W, H, dt); else titleIdle();   // оформление главного меню — под плашками HUD
     renderHud(W, H, dt, focused, captured);
 
     Module* ui = findModule("interface");

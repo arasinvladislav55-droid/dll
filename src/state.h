@@ -34,10 +34,12 @@ struct Palette { uint32_t a, b, c; };      // 0xRRGGBB
 extern std::vector<Module> g_modules;
 extern Palette g_launcherPalette;          // цвета темы лаунчера (из uc_theme.txt)
 extern std::wstring g_dir;                 // папка с dll: рядом лежат menu.cfg и uc_theme.txt
+extern std::string g_launcherVersion;      // из uc_theme.txt (необязательно), например «4.1.0»
 
 void initModules();
 Module* findModule(const char* id);
 Palette currentPalette();                  // с учётом выбранной в меню темы
+Palette themePalette(int idx);             // 0 — как в лаунчере, 1..6 — встроенные темы
 void loadTheme();                          // читает uc_theme.txt: «ffb454 ff8a3d ffd98a»
 void loadConfig();
 void saveConfig();

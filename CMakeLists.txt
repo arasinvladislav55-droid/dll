@@ -12,7 +12,7 @@ FetchContent_Declare(minhook GIT_REPOSITORY https://github.com/TsudaKageyu/minho
 FetchContent_MakeAvailable(imgui minhook)
 
 add_library(uc_menu SHARED
-    src/main.cpp src/state.cpp src/ui.cpp
+    src/main.cpp src/state.cpp src/ui.cpp src/title.cpp
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -26,7 +26,7 @@ add_library(uc_menu SHARED
 target_include_directories(uc_menu PRIVATE
     src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${minhook_SOURCE_DIR}/include)
 target_compile_definitions(uc_menu PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
-target_link_libraries(uc_menu PRIVATE opengl32 gdi32 user32)
+target_link_libraries(uc_menu PRIVATE opengl32 gdi32 user32 shell32)
 set_target_properties(uc_menu PROPERTIES PREFIX "")   # файл называется uc_menu.dll, без «lib»
 if (MSVC)
     target_compile_options(uc_menu PRIVATE /utf-8)   # русские строки в исходниках

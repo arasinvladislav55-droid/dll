@@ -12,6 +12,7 @@ namespace uc {
 std::vector<Module> g_modules;
 Palette g_launcherPalette = {0xffb454, 0xff8a3d, 0xffd98a};
 std::wstring g_dir;
+std::string g_launcherVersion;
 
 Setting* Module::find(const char* sid) {
     for (auto& s : settings) if (s.id == sid) return &s;
@@ -32,6 +33,11 @@ static const Palette kThemes[] = {
     {0x10b981, 0x14b8a6, 0xa3e635},  // Изумруд
     {0xf97316, 0xef4444, 0xfacc15},  // Закат
 };
+
+Palette themePalette(int idx) {
+    if (idx <= 0 || idx > 6) return g_launcherPalette;
+    return kThemes[idx - 1];
+}
 
 Palette currentPalette() {
     Module* ui = findModule("interface");
@@ -106,6 +112,17 @@ void initModules() {
     }
 
     {
+        Module& m = addModule("mainmenu", "Главное меню", "Оформление главного меню Minecraft: фон, частицы, стеклянные кнопки и боковые панели", 1, true);
+        m.settings.push_back(sliderS("dim", "Затемнение", "ФОН", 30, 0, 70, 5, "%"));
+        m.settings.push_back(boolS("aurora", "Аврора", "ФОН", true));
+        m.settings.push_back(sliderS("auroraPower", "Яркость авроры", "ФОН", 60, 20, 100, 5, "%"));
+        m.settings.push_back(boolS("particles", "Частицы", "ФОН", true));
+        m.settings.push_back(sliderS("count", "Количество частиц", "ФОН", 70, 20, 120, 10, ""));
+        m.settings.push_back(boolS("vignette", "Виньетка", "ФОН", true));
+        m.settings.push_back(boolS("buttons", "Стеклянные кнопки", "ЭЛЕМЕНТЫ", true));
+        m.settings.push_back(boolS("panels", "Боковые панели", "ЭЛЕМЕНТЫ", true));
+    }
+    {
         Module& m = addModule("interface", "Интерфейс", "Оформление меню под лаунчер: цвета, размер, анимации", 1, true);
         m.settings.push_back(modeS("theme", "Тема", "ЦВЕТА",
             {"Как в лаунчере", "Янтарь", "Фиолетовый", "Океан", "Роза", "Изумруд", "Закат"}, 0));
@@ -124,6 +141,8 @@ void loadTheme() {
     if (!f) return;
     std::string tok[3];
     for (auto& t : tok) if (!(f >> t)) return;
+    std::string ver;
+    if (f >> ver && ver.size() < 24) g_launcherVersion = ver;
     uint32_t v[3];
     for (int i = 0; i < 3; i++) {
         const char* p = tok[i].c_str();
